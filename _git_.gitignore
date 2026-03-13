@@ -1,0 +1,17 @@
+# Environment & secrets
+.env
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Database exports
+exports/
+
+# VS Code
+.vscode/
+
+# Python
+*.egg-info/
+dist/
+build/

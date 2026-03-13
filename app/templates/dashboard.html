@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VAULTX — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cyan: #00f5ff;
+    --pink: #ff006e;
+    --purple: #bf00ff;
+    --green: #39ff14;
+    --yellow: #ffe600;
+    --amber: #ff9500;
+    --bg: #020408;
+    --bg2: #060d14;
+    --surface: rgba(0,245,255,0.04);
+    --surface2: rgba(0,245,255,0.07);
+    --border: rgba(0,245,255,0.12);
+    --border2: rgba(0,245,255,0.2);
+    --text: #c8e8f0;
+    --muted: #4a7a8a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* ── CUSTOM CURSOR ── */
+  #cursor {
+    width: 22px; height: 22px;
+    border: 2px solid var(--cyan);
+    border-radius: 50%;
+    position: fixed; pointer-events: none;
+    z-index: 999999; top: 0; left: 0;
+    transform: translate(-50%, -50%);
+    transition: transform 0.15s ease, border-color 0.2s;
+    box-shadow: 0 0 10px var(--cyan), 0 0 20px rgba(0,245,255,0.3);
+  }
+  #cursor.hovered {
+    transform: translate(-50%, -50%) scale(1.8);
+    border-color: var(--pink);
+    box-shadow: 0 0 14px var(--pink);
+  }
+  #cursor-dot {
+    width: 5px; height: 5px;
+    background: var(--cyan); border-radius: 50%;
+    position: fixed; pointer-events: none;
+    z-index: 999999; top: 0; left: 0;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 6px var(--cyan);
+  }
+
+  /* ── SCANLINES ── */
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.06) 2px, rgba(0,0,0,0.06) 4px);
+    pointer-events: none; z-index: 100;
+  }
+
+  /* ── GRID ── */
+  body::after {
+    content: ''; position: fixed; inset: 0;
+    background-image: linear-gradient(rgba(0,245,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(0,245,255,0.025) 1px, transparent 1px);
+    background-size: 50px 50px;
+    pointer-events: none; z-index: 0;
+  }
+
+  .orb { position: fixed; border-radius: 50%; filter: blur(150px); pointer-events: none; z-index: 0; }
+  .orb1 { width: 600px; height: 600px; background: rgba(0,245,255,0.04); top: -200px; right: -200px; }
+  .orb2 { width: 400px; height: 400px; background: rgba(191,0,255,0.06); bottom: -100px; left: -100px; }
+
+  /* ── NAV ── */
+  .nav {
+    position: fixed; top: 0; left: 0; right: 0; height: 56px;
+    background: rgba(2,4,8,0.92); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 24px;
+    z-index: 200; gap: 20px; backdrop-filter: blur(20px);
+  }
+  .nav-logo { font-family: 'Orbitron', monospace; font-weight: 900; font-size: 18px; }
+  .nav-logo .v { color: var(--cyan); text-shadow: 0 0 20px var(--cyan); }
+  .nav-sep { width: 1px; height: 24px; background: var(--border); }
+  .nav-user { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  .nav-user .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .nav-actions { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+  .nav-btn {
+    padding: 6px 16px; font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; letter-spacing: 1px;
+    background: none; border: 1px solid var(--border);
+    color: var(--muted); cursor: none; transition: all 0.2s;
+  }
+  .nav-btn:hover { border-color: var(--pink); color: var(--pink); box-shadow: 0 0 10px rgba(255,0,110,0.2); }
+  .nav-alert-btn {
+    position: relative; padding: 6px 16px;
+    font-family: 'Share Tech Mono', monospace; font-size: 11px;
+    letter-spacing: 1px; background: none; border: 1px solid var(--border);
+    color: var(--muted); cursor: none; transition: all 0.2s;
+  }
+  .nav-alert-btn:hover { border-color: var(--yellow); color: var(--yellow); }
+  .alert-badge {
+    position: absolute; top: -4px; right: -4px;
+    width: 16px; height: 16px; background: var(--pink);
+    border-radius: 50%; font-size: 8px;
+    display: none; align-items: center; justify-content: center;
+    color: #fff; box-shadow: 0 0 8px var(--pink); font-weight: bold;
+  }
+
+  /* ── LAYOUT ── */
+  .layout {
+    display: grid; grid-template-columns: 280px 1fr;
+    min-height: 100vh; padding-top: 56px; padding-bottom: 28px;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    border-right: 1px solid var(--border);
+    padding: 24px 0; position: sticky;
+    top: 56px; height: calc(100vh - 56px - 28px);
+    overflow-y: auto; z-index: 10;
+  }
+  .sidebar-section { padding: 0 16px; margin-bottom: 8px; }
+  .sidebar-label {
+    font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--muted); padding: 0 8px; margin-bottom: 8px; margin-top: 20px;
+  }
+
+  .add-btn {
+    width: 100%; padding: 12px 16px;
+    background: rgba(0,245,255,0.06); border: 1px solid var(--cyan);
+    color: var(--cyan); font-family: 'Orbitron', monospace;
+    font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    cursor: none; display: flex; align-items: center; gap: 10px;
+    transition: all 0.3s; position: relative; overflow: hidden;
+    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+  }
+  .add-btn::before {
+    content: ''; position: absolute; inset: 0;
+    background: var(--cyan); transform: scaleX(0);
+    transform-origin: left; transition: transform 0.3s;
+  }
+  .add-btn:hover::before { transform: scaleX(1); }
+  .add-btn:hover { color: var(--bg); box-shadow: 0 0 20px rgba(0,245,255,0.3); }
+  .add-btn span { position: relative; z-index: 1; }
+
+  .vault-list { padding: 0 8px; }
+  .vault-item {
+    padding: 10px; margin-bottom: 4px;
+    background: var(--surface); border: 1px solid transparent;
+    cursor: none; display: flex; align-items: center; gap: 12px;
+    transition: all 0.2s; position: relative;
+  }
+  .vault-item:hover, .vault-item.active {
+    border-color: var(--border2); background: var(--surface2);
+  }
+  .vault-item.active { border-left-color: var(--cyan); box-shadow: inset 3px 0 0 var(--cyan); }
+  .vault-item:hover .item-arrow { opacity: 1; }
+
+  .item-icon {
+    width: 34px; height: 34px; background: rgba(0,245,255,0.08);
+    border: 1px solid var(--border); display: flex;
+    align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+    font-family: 'Orbitron', monospace; font-weight: 700;
+    color: var(--cyan); text-transform: uppercase;
+  }
+  .item-info { flex: 1; min-width: 0; }
+  .item-site { font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item-date { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .item-arrow { color: var(--cyan); font-size: 12px; opacity: 0; transition: opacity 0.2s; }
+  .empty-vault { padding: 24px 16px; text-align: center; color: var(--muted); font-size: 12px; line-height: 2; }
+
+  /* ── MAIN ── */
+  .main { padding: 32px; position: relative; z-index: 10; }
+
+  /* Stats */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 18px 20px; position: relative; overflow: hidden;
+    clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+  }
+  .stat-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: var(--accent, var(--cyan)); box-shadow: 0 0 10px var(--accent, var(--cyan));
+  }
+  .stat-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .stat-value { font-family: 'Orbitron', monospace; font-size: 26px; font-weight: 700; color: var(--accent, var(--cyan)); }
+
+  /* Section header */
+  .section-hdr { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+  .section-title { font-family: 'Orbitron', monospace; font-size: 14px; font-weight: 700; letter-spacing: 2px; color: #fff; text-transform: uppercase; }
+  .section-line { flex: 1; height: 1px; background: var(--border); }
+
+  /* Detail panel */
+  .detail-panel {
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 28px; position: relative; min-height: 300px;
+  }
+  .detail-panel::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--cyan), var(--purple), transparent);
+  }
+  .detail-empty {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; min-height: 280px; color: var(--muted); gap: 12px;
+  }
+  .detail-empty .icon { font-size: 40px; opacity: 0.3; }
+  .detail-empty p { font-size: 13px; }
+
+  .detail-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 28px; gap: 16px; }
+  .detail-site-icon {
+    width: 48px; height: 48px; background: rgba(0,245,255,0.08);
+    border: 1px solid var(--border2); display: flex;
+    align-items: center; justify-content: center;
+    font-family: 'Orbitron', monospace; font-size: 18px; font-weight: 900;
+    color: var(--cyan); text-transform: uppercase; flex-shrink: 0;
+  }
+  .detail-site-name { font-family: 'Orbitron', monospace; font-size: 18px; font-weight: 700; color: #fff; }
+  .detail-site-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .detail-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .icon-btn {
+    width: 34px; height: 34px; background: none;
+    border: 1px solid var(--border); color: var(--muted);
+    cursor: none; display: flex; align-items: center; justify-content: center;
+    font-size: 14px; transition: all 0.2s;
+  }
+  .icon-btn:hover { border-color: var(--cyan); color: var(--cyan); box-shadow: 0 0 10px rgba(0,245,255,0.2); }
+  .icon-btn.danger:hover { border-color: var(--pink); color: var(--pink); box-shadow: 0 0 10px rgba(255,0,110,0.2); }
+
+  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .field-row { margin-bottom: 16px; }
+  .field-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .field-value {
+    background: rgba(0,245,255,0.03); border: 1px solid var(--border);
+    padding: 10px 14px; font-size: 13px; color: var(--text);
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  .field-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .copy-btn { background: none; border: none; color: var(--muted); cursor: none; font-size: 12px; padding: 2px 6px; transition: color 0.2s; flex-shrink: 0; }
+  .copy-btn:hover { color: var(--cyan); }
+  .password-mask { letter-spacing: 3px; }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(2,4,8,0.88);
+    backdrop-filter: blur(8px); z-index: 500;
+    display: none; align-items: center; justify-content: center;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: var(--bg2); border: 1px solid var(--border2);
+    padding: 32px; width: 100%; max-width: 520px; position: relative;
+  }
+  .modal::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--cyan), var(--purple));
+  }
+  .modal-title {
+    font-family: 'Orbitron', monospace; font-size: 16px;
+    font-weight: 700; color: #fff; margin-bottom: 24px;
+  }
+  .modal-close {
+    position: absolute; top: 20px; right: 20px;
+    background: none; border: none; color: var(--muted);
+    font-size: 18px; cursor: none; transition: color 0.2s;
+  }
+  .modal-close:hover { color: var(--pink); }
+
+  .m-input-group { margin-bottom: 16px; }
+  .m-label { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; display: block; }
+  .m-input {
+    width: 100%; background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); font-family: 'Share Tech Mono', monospace;
+    font-size: 13px; padding: 11px 14px; outline: none;
+    transition: border-color 0.3s, box-shadow 0.3s; cursor: none;
+  }
+  .m-input:focus { border-color: var(--cyan); box-shadow: 0 0 15px rgba(0,245,255,0.1); }
+  .m-input::placeholder { color: var(--muted); }
+  .modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .gen-row { display: flex; gap: 8px; margin-top: 6px; }
+  .gen-btn {
+    padding: 11px 14px; background: rgba(0,245,255,0.06);
+    border: 1px solid var(--cyan); color: var(--cyan);
+    font-family: 'Share Tech Mono', monospace; font-size: 12px;
+    cursor: none; white-space: nowrap; flex-shrink: 0; transition: all 0.2s;
+  }
+  .gen-btn:hover { background: var(--cyan); color: var(--bg); }
+  .modal-footer { display: flex; gap: 10px; margin-top: 24px; justify-content: flex-end; }
+  .btn-cancel {
+    padding: 10px 24px; background: none; border: 1px solid var(--border);
+    color: var(--muted); font-family: 'Share Tech Mono', monospace;
+    font-size: 12px; cursor: none; transition: all 0.2s;
+  }
+  .btn-cancel:hover { border-color: var(--pink); color: var(--pink); }
+  .btn-save {
+    padding: 10px 24px; background: none; border: 1px solid var(--cyan);
+    color: var(--cyan); font-family: 'Orbitron', monospace;
+    font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    cursor: none; position: relative; overflow: hidden; transition: color 0.3s;
+    clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+  }
+  .btn-save::before {
+    content: ''; position: absolute; inset: 0; background: var(--cyan);
+    transform: scaleX(0); transform-origin: left; transition: transform 0.3s;
+  }
+  .btn-save:hover::before { transform: scaleX(1); }
+  .btn-save:hover { color: var(--bg); box-shadow: 0 0 20px rgba(0,245,255,0.3); }
+  .btn-save span { position: relative; z-index: 1; }
+
+  /* ── GENERATOR PANEL ── */
+  .gen-panel {
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 24px; margin-bottom: 24px; position: relative;
+  }
+  .gen-panel::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--purple), var(--pink), transparent);
+  }
+  .gen-result {
+    background: rgba(0,0,0,0.4); border: 1px solid var(--border2);
+    padding: 16px 20px; font-family: 'Share Tech Mono', monospace;
+    font-size: 18px; color: var(--green); letter-spacing: 2px;
+    word-break: break-all; min-height: 58px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; margin-bottom: 16px; text-shadow: 0 0 10px var(--green);
+  }
+  .ctrl-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--muted); gap: 8px; }
+  input[type="range"] {
+    -webkit-appearance: none; height: 2px; background: var(--border); outline: none; flex: 1;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 12px; height: 12px;
+    background: var(--cyan); border-radius: 50%;
+    box-shadow: 0 0 8px var(--cyan); cursor: none;
+  }
+  .toggle-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); cursor: none; }
+  .toggle-row input[type="checkbox"] { accent-color: var(--cyan); width: 14px; height: 14px; cursor: none; }
+  .strength-bar-gen { flex: 1; height: 3px; background: rgba(255,255,255,0.05); }
+  .strength-fill-gen { height: 100%; transition: width 0.4s, background 0.4s; box-shadow: 0 0 6px currentColor; }
+
+  /* ── BREACH PANEL ── */
+  .breach-panel {
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 24px; margin-bottom: 24px; position: relative;
+  }
+  .breach-panel::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--pink), var(--amber), transparent);
+  }
+  .breach-panel-title {
+    font-family: 'Orbitron', monospace; font-size: 12px;
+    color: var(--text); letter-spacing: 2px; margin-bottom: 8px;
+  }
+  .breach-panel-sub { font-size: 12px; color: var(--muted); margin-bottom: 20px; line-height: 1.8; }
+
+  .breach-input-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .breach-input {
+    flex: 1; background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); font-family: 'Share Tech Mono', monospace;
+    font-size: 14px; padding: 12px 16px; outline: none;
+    transition: border-color 0.3s; cursor: none;
+  }
+  .breach-input:focus { border-color: var(--pink); box-shadow: 0 0 15px rgba(255,0,110,0.1); }
+  .breach-input::placeholder { color: var(--muted); }
+
+  .breach-check-btn {
+    padding: 12px 20px; background: rgba(255,0,110,0.08);
+    border: 1px solid var(--pink); color: var(--pink);
+    font-family: 'Orbitron', monospace; font-size: 11px;
+    font-weight: 700; letter-spacing: 2px; cursor: none;
+    white-space: nowrap; transition: all 0.2s;
+    clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+  }
+  .breach-check-btn:hover { background: var(--pink); color: var(--bg); }
+  .breach-check-btn:disabled { opacity: 0.5; }
+
+  .breach-scan-btn {
+    padding: 13px 28px; background: rgba(255,0,110,0.06);
+    border: 1px solid var(--pink); color: var(--pink);
+    font-family: 'Orbitron', monospace; font-size: 12px;
+    font-weight: 700; letter-spacing: 2px; cursor: none;
+    transition: all 0.2s; margin-bottom: 24px;
+    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .breach-scan-btn:hover { background: var(--pink); color: var(--bg); }
+  .breach-scan-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .single-result { display: none; margin-top: 4px; }
+
+  .result-breached {
+    border-left: 3px solid var(--severity-col, var(--pink));
+    background: rgba(255,0,110,0.06); padding: 16px 20px;
+  }
+  .result-safe {
+    border-left: 3px solid var(--green);
+    background: rgba(57,255,20,0.05); padding: 16px 20px;
+  }
+  .result-error {
+    border-left: 3px solid var(--yellow);
+    background: rgba(255,230,0,0.05); padding: 16px 20px;
+  }
+  .result-label { font-family: 'Orbitron', monospace; font-size: 11px; letter-spacing: 2px; margin-bottom: 8px; }
+  .result-count { font-size: 15px; font-weight: bold; margin-bottom: 8px; }
+  .result-advice { font-size: 12px; color: var(--muted); line-height: 1.8; }
+
+  /* Scan summary bar */
+  .scan-summary {
+    display: flex; gap: 0; margin-bottom: 20px;
+    border: 1px solid var(--border); overflow: hidden;
+  }
+  .summary-cell {
+    flex: 1; text-align: center; padding: 16px 12px;
+    border-right: 1px solid var(--border);
+  }
+  .summary-cell:last-child { border-right: none; }
+  .summary-num { font-family: 'Orbitron', monospace; font-size: 28px; font-weight: 700; }
+  .summary-lbl { font-size: 10px; letter-spacing: 2px; color: var(--muted); margin-top: 4px; text-transform: uppercase; }
+
+  /* Scan result items */
+  .scan-item {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 16px; margin-bottom: 8px;
+    border-left-width: 3px; border-left-style: solid;
+    transition: background 0.2s;
+  }
+  .scan-item:hover { filter: brightness(1.1); }
+  .scan-item-icon { font-size: 20px; flex-shrink: 0; }
+  .scan-item-info { flex: 1; }
+  .scan-item-site { font-size: 14px; color: var(--text); margin-bottom: 4px; }
+  .scan-item-msg { font-size: 11px; margin-bottom: 2px; }
+  .scan-item-advice { font-size: 11px; color: var(--muted); }
+  .scan-item-badge {
+    font-family: 'Orbitron', monospace; font-size: 10px;
+    letter-spacing: 1px; padding: 4px 10px;
+    border-width: 1px; border-style: solid; flex-shrink: 0;
+  }
+
+  /* ── ALERTS ── */
+  .alert-item {
+    padding: 14px 16px; background: rgba(255,0,110,0.05);
+    border: 1px solid rgba(255,0,110,0.2); border-left: 3px solid var(--pink); margin-bottom: 10px;
+  }
+  .alert-type { font-size: 11px; color: var(--pink); letter-spacing: 2px; margin-bottom: 4px; }
+  .alert-msg { font-size: 12px; color: var(--text); line-height: 1.6; }
+  .alert-time { font-size: 10px; color: var(--muted); margin-top: 6px; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 48px; right: 24px; padding: 12px 20px;
+    background: rgba(6,13,20,0.97); border: 1px solid var(--cyan);
+    color: var(--cyan); font-size: 12px; z-index: 9000;
+    transform: translateY(20px); opacity: 0; transition: all 0.3s;
+    box-shadow: 0 0 20px rgba(0,245,255,0.2); max-width: 320px;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* ── TERMINAL BAR ── */
+  .terminal-line {
+    position: fixed; bottom: 0; left: 0; right: 0; height: 28px;
+    background: rgba(0,245,255,0.04); border-top: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 20px;
+    font-size: 11px; color: var(--muted); z-index: 50; gap: 20px; overflow: hidden;
+  }
+  .sys-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); flex-shrink: 0; }
+  .marquee-wrap { overflow: hidden; flex: 1; }
+  .marquee { display: inline-flex; gap: 40px; animation: marquee 25s linear infinite; white-space: nowrap; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes blink   { 0%,80%,100%{opacity:0.2} 40%{opacity:1} }
+  @keyframes marquee { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+  @keyframes fadeIn  { from{opacity:0;transform:scale(1.02)} to{opacity:1;transform:scale(1)} }
+  @keyframes pulse   { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  @keyframes spin    { to{transform:rotate(360deg)} }
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div id="cursor-dot"></div>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-logo"><span class="v">VAULT</span>X</div>
+  <div class="nav-sep"></div>
+  <div class="nav-user">
+    <div class="dot"></div>
+    <span id="nav-username">loading...</span>
+  </div>
+  <div class="nav-actions">
+    <button class="nav-alert-btn" onclick="showSection('alerts')">
+      ⚠ ALERTS
+      <div class="alert-badge" id="alert-badge"></div>
+    </button>
+    <button class="nav-btn" onclick="handleLogout()">⏏ LOGOUT</button>
+  </div>
+</nav>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <button class="add-btn" onclick="openAddModal()">
+        <span>+ ADD PASSWORD</span>
+      </button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">// Vault entries</div>
+      <div class="vault-list" id="vault-list">
+        <div class="empty-vault">No entries yet.<br>Add your first password.</div>
+      </div>
+    </div>
+
+    <div class="sidebar-section" style="margin-top:16px;">
+      <div class="sidebar-label">// Tools</div>
+      <div class="vault-list">
+
+        <div class="vault-item" onclick="showSection('generator')">
+          <div class="item-icon">⚡</div>
+          <div class="item-info">
+            <div class="item-site">Password Generator</div>
+            <div class="item-date">Create strong passwords</div>
+          </div>
+          <span class="item-arrow">›</span>
+        </div>
+
+        <div class="vault-item" onclick="showSection('breach')">
+          <div class="item-icon" style="color:var(--pink);border-color:rgba(255,0,110,0.3);">☣</div>
+          <div class="item-info">
+            <div class="item-site">Breach Scanner</div>
+            <div class="item-date">Check for leaked passwords</div>
+          </div>
+          <span class="item-arrow">›</span>
+        </div>
+
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- STATS ROW -->
+    <div class="stats-row">
+      <div class="stat-card" style="--accent:var(--cyan)">
+        <div class="stat-label">Stored Passwords</div>
+        <div class="stat-value" id="stat-count">0</div>
+      </div>
+      <div class="stat-card" style="--accent:var(--green)">
+        <div class="stat-label">Encryption</div>
+        <div class="stat-value" style="font-size:14px;padding-top:6px;">AES-256</div>
+      </div>
+      <div class="stat-card" style="--accent:var(--purple)">
+        <div class="stat-label">Key Exchange</div>
+        <div class="stat-value" style="font-size:14px;padding-top:6px;">RSA-2048</div>
+      </div>
+      <div class="stat-card" style="--accent:var(--pink)">
+        <div class="stat-label">Security Status</div>
+        <div class="stat-value" style="font-size:14px;padding-top:6px;color:var(--green);" id="stat-security">SECURE</div>
+      </div>
+    </div>
+
+    <!-- ══ VAULT SECTION ══ -->
+    <div id="section-vault">
+      <div class="section-hdr">
+        <div class="section-title">// Vault Entry</div>
+        <div class="section-line"></div>
+      </div>
+      <div class="detail-panel" id="detail-panel">
+        <div class="detail-empty">
+          <div class="icon">◈</div>
+          <p>Select an entry from the sidebar to view details</p>
+          <p style="font-size:11px;">or add a new password entry</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ GENERATOR SECTION ══ -->
+    <div id="section-generator" style="display:none;">
+      <div class="section-hdr">
+        <div class="section-title">// Password Generator</div>
+        <div class="section-line"></div>
+      </div>
+      <div class="gen-panel">
+        <div class="gen-result">
+          <span id="gen-output" style="font-size:15px;color:var(--muted);">Click GENERATE to create a password</span>
+          <button class="copy-btn" onclick="copyGenerated()" title="Copy">⎘</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+          <div class="ctrl-row">
+            <span>Length: <strong id="len-val" style="color:var(--cyan)">16</strong></span>
+            <input type="range" id="gen-length" min="8" max="64" value="16" oninput="document.getElementById('len-val').textContent=this.value">
+          </div>
+          <div class="ctrl-row">
+            <span style="color:var(--muted)">Strength:</span>
+            <div class="strength-bar-gen"><div class="strength-fill-gen" id="gen-strength-fill" style="width:0%;background:var(--cyan)"></div></div>
+            <span id="gen-strength-label" style="color:var(--muted);min-width:70px;text-align:right;font-size:11px;">—</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">
+          <label class="toggle-row"><input type="checkbox" id="use-upper" checked> Uppercase</label>
+          <label class="toggle-row"><input type="checkbox" id="use-lower" checked> Lowercase</label>
+          <label class="toggle-row"><input type="checkbox" id="use-digits" checked> Numbers</label>
+          <label class="toggle-row"><input type="checkbox" id="use-symbols" checked> Symbols</label>
+        </div>
+        <button class="add-btn" style="width:200px;" onclick="generatePassword()">
+          <span>⚡ GENERATE</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ══ BREACH SCANNER SECTION ══ -->
+    <div id="section-breach" style="display:none;">
+      <div class="section-hdr">
+        <div class="section-title">// Breach Scanner</div>
+        <div class="section-line"></div>
+      </div>
+
+      <!-- Single password check -->
+      <div class="breach-panel">
+        <div class="breach-panel-title">CHECK SINGLE PASSWORD</div>
+        <div class="breach-panel-sub">
+          Uses k-anonymity — only the first 5 chars of your SHA1 hash are sent.<br>
+          Your actual password <span style="color:var(--cyan);">never leaves your device</span>.
+        </div>
+        <div class="breach-input-row">
+          <input type="text" class="breach-input" id="breach-input"
+                 placeholder="Enter any password to check..."
+                 onkeydown="if(event.key==='Enter') checkSingleBreach()">
+          <button class="breach-check-btn" id="breach-check-btn" onclick="checkSingleBreach()">
+            ☣ CHECK
+          </button>
+        </div>
+        <div class="single-result" id="single-breach-result"></div>
+      </div>
+
+      <!-- Vault scan -->
+      <div class="breach-panel">
+        <div class="breach-panel-title">SCAN ENTIRE VAULT</div>
+        <div class="breach-panel-sub">
+          Checks every saved password against 1 billion+ known leaked passwords.<br>
+          Breached passwords are ranked by severity so you know what to fix first.
+        </div>
+
+        <button class="breach-scan-btn" id="scan-btn" onclick="scanVault()">
+          <span>☣ SCAN ALL PASSWORDS</span>
+        </button>
+
+        <!-- Scan results (hidden until scan runs) -->
+        <div id="scan-results" style="display:none;">
+          <div class="scan-summary" id="scan-summary"></div>
+          <div id="scan-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ALERTS SECTION ══ -->
+    <div id="section-alerts" style="display:none;">
+      <div class="section-hdr">
+        <div class="section-title">// Security Alerts</div>
+        <div class="section-line"></div>
+      </div>
+      <div id="alerts-list">
+        <div style="color:var(--muted);font-size:13px;padding:20px 0;">Loading alerts...</div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ══ ADD / EDIT MODAL ══ -->
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-title" id="modal-title-text">// Add Password</div>
+    <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    <input type="hidden" id="modal-entry-id">
+    <div class="m-input-group">
+      <label class="m-label">Website / App</label>
+      <input class="m-input" id="m-website" type="text" placeholder="gmail.com">
+    </div>
+    <div class="modal-row">
+      <div class="m-input-group">
+        <label class="m-label">Email</label>
+        <input class="m-input" id="m-email" type="text" placeholder="you@email.com">
+      </div>
+      <div class="m-input-group">
+        <label class="m-label">Username</label>
+        <input class="m-input" id="m-username" type="text" placeholder="your_username">
+      </div>
+    </div>
+    <div class="m-input-group">
+      <label class="m-label">Password</label>
+      <div class="gen-row">
+        <input class="m-input" id="m-password" type="text" placeholder="enter or generate" style="flex:1;">
+        <button class="gen-btn" onclick="fillGenerated()">⚡ Generate</button>
+      </div>
+    </div>
+    <div class="m-input-group">
+      <label class="m-label">Notes (optional)</label>
+      <input class="m-input" id="m-notes" type="text" placeholder="work account, personal...">
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModalDirect()">Cancel</button>
+      <button class="btn-save" onclick="saveEntry()"><span>ENCRYPT &amp; SAVE</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- TERMINAL BAR -->
+<div class="terminal-line">
+  <span style="color:var(--green);animation:blink 1s infinite">▮</span>
+  <div class="marquee-wrap">
+    <div class="marquee">
+      <span>VAULT ACTIVE</span><span>///</span>
+      <span>ALL DATA ENCRYPTED IN TRANSIT</span><span>///</span>
+      <span>ZERO-KNOWLEDGE PROTOCOL ENGAGED</span><span>///</span>
+      <span>RSA PRIVATE KEY: SESSION MEMORY ONLY</span><span>///</span>
+      <span>HONEY TRAPS: ARMED</span><span>///</span>
+      <span>BREACH DATABASE: HIBP K-ANONYMITY</span><span>///</span>
+      <span>VAULT ACTIVE</span><span>///</span>
+      <span>ALL DATA ENCRYPTED IN TRANSIT</span><span>///</span>
+      <span>ZERO-KNOWLEDGE PROTOCOL ENGAGED</span><span>///</span>
+      <span>RSA PRIVATE KEY: SESSION MEMORY ONLY</span><span>///</span>
+      <span>HONEY TRAPS: ARMED</span><span>///</span>
+      <span>BREACH DATABASE: HIBP K-ANONYMITY</span><span>///</span>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+    <div class="sys-dot"></div>
+    <span>VAULT LOCKED &amp; SECURE</span>
+  </div>
+</div>
+
+<script>
+// ── CURSOR ──────────────────────────────────────────────
+var cursorEl  = document.getElementById('cursor');
+var cursorDot = document.getElementById('cursor-dot');
+document.addEventListener('mousemove', function(e) {
+  cursorEl.style.left  = e.clientX + 'px';
+  cursorEl.style.top   = e.clientY + 'px';
+  cursorDot.style.left = e.clientX + 'px';
+  cursorDot.style.top  = e.clientY + 'px';
+});
+document.querySelectorAll('button, input, .vault-item, label').forEach(function(el) {
+  el.addEventListener('mouseenter', function() { cursorEl.classList.add('hovered'); });
+  el.addEventListener('mouseleave', function() { cursorEl.classList.remove('hovered'); });
+});
+
+// ── STATE ───────────────────────────────────────────────
+var currentEntries = [];
+var currentEntryId = null;
+var editMode = false;
+var pwdShown = false;
+
+// ── TOAST ───────────────────────────────────────────────
+function showToast(msg, color) {
+  color = color || 'var(--cyan)';
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.borderColor = color;
+  t.style.color = color;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2800);
+}
+
+// ── SECTION SWITCHING ───────────────────────────────────
+function showSection(name) {
+  ['vault', 'generator', 'breach', 'alerts'].forEach(function(s) {
+    document.getElementById('section-' + s).style.display = s === name ? 'block' : 'none';
+  });
+  if (name === 'alerts') loadAlerts();
+}
+
+// ── LOAD VAULT LIST ─────────────────────────────────────
+function loadVault() {
+  fetch('/vault')
+  .then(function(r) {
+    if (r.status === 401) { window.location.href = '/'; return null; }
+    return r.json();
+  })
+  .then(function(data) {
+    if (!data) return;
+    currentEntries = data.entries || [];
+    renderVaultList();
+    document.getElementById('stat-count').textContent = currentEntries.length;
+  })
+  .catch(function(e) { console.error('loadVault error:', e); });
+}
+
+function renderVaultList() {
+  var list = document.getElementById('vault-list');
+  if (!currentEntries.length) {
+    list.innerHTML = '<div class="empty-vault">No entries yet.<br>Add your first password.</div>';
+    return;
+  }
+  list.innerHTML = currentEntries.map(function(e) {
+    return '<div class="vault-item ' + (e.id === currentEntryId ? 'active' : '') + '" onclick="selectEntry(\'' + e.id + '\')">' +
+      '<div class="item-icon">' + e.website[0].toUpperCase() + '</div>' +
+      '<div class="item-info">' +
+        '<div class="item-site">' + e.website + '</div>' +
+        '<div class="item-date">' + e.created_at + '</div>' +
+      '</div>' +
+      '<span class="item-arrow">›</span>' +
+    '</div>';
+  }).join('');
+}
+
+// ── SELECT AND DECRYPT ENTRY ────────────────────────────
+function selectEntry(id) {
+  currentEntryId = id;
+  pwdShown = false;
+  showSection('vault');
+  document.getElementById('detail-panel').innerHTML =
+    '<div class="detail-empty"><div class="icon" style="font-size:24px;animation:blink 1s infinite">◈</div><p>Decrypting...</p></div>';
+  renderVaultList();
+
+  fetch('/vault/get', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ entry_id: id })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.honey_triggered) { triggerHoneyAlert(); return; }
+    if (data.success) { renderDetail(data); }
+    else { showToast('✗ ' + data.message, 'var(--pink)'); }
+  })
+  .catch(function(e) { showToast('✗ Connection error', 'var(--pink)'); });
+}
+
+function renderDetail(d) {
+  window._currentDetail = d;
+  document.getElementById('detail-panel').innerHTML =
+    '<div class="detail-header">' +
+      '<div style="display:flex;align-items:center;gap:14px;">' +
+        '<div class="detail-site-icon">' + d.website[0].toUpperCase() + '</div>' +
+        '<div>' +
+          '<div class="detail-site-name">' + d.website + '</div>' +
+          '<div class="detail-site-sub">Decrypted with RSA-2048 private key</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="detail-actions">' +
+        '<button class="icon-btn" onclick="openEditModal()" title="Edit">✎</button>' +
+        '<button class="icon-btn danger" onclick="deleteEntry(\'' + d.id + '\')" title="Delete">⌫</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="field-grid">' +
+      '<div class="field-row"><div class="field-label">Website</div>' +
+        '<div class="field-value"><span class="field-text">' + (d.website||'—') + '</span>' +
+        '<button class="copy-btn" onclick="doCopy(\'' + esc(d.website) + '\')">⎘</button></div></div>' +
+      '<div class="field-row"><div class="field-label">Email</div>' +
+        '<div class="field-value"><span class="field-text">' + (d.email||'—') + '</span>' +
+        '<button class="copy-btn" onclick="doCopy(\'' + esc(d.email) + '\')">⎘</button></div></div>' +
+      '<div class="field-row"><div class="field-label">Username</div>' +
+        '<div class="field-value"><span class="field-text">' + (d.entry_username||'—') + '</span>' +
+        '<button class="copy-btn" onclick="doCopy(\'' + esc(d.entry_username) + '\')">⎘</button></div></div>' +
+      '<div class="field-row"><div class="field-label">Password</div>' +
+        '<div class="field-value">' +
+          '<span class="field-text password-mask" id="pwd-field">••••••••••••</span>' +
+          '<button class="copy-btn" onclick="togglePwd()" title="Show/hide">👁</button>' +
+          '<button class="copy-btn" onclick="doCopy(\'' + esc(d.password) + '\')">⎘</button>' +
+        '</div></div>' +
+    '</div>' +
+    (d.notes ? '<div class="field-row"><div class="field-label">Notes</div><div class="field-value"><span class="field-text">' + d.notes + '</span></div></div>' : '');
+}
+
+function esc(s) { return (s||'').replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+
+function togglePwd() {
+  if (!window._currentDetail) return;
+  pwdShown = !pwdShown;
+  document.getElementById('pwd-field').textContent = pwdShown ? window._currentDetail.password : '••••••••••••';
+}
+
+function doCopy(text) {
+  if (!text || text === '—') return;
+  navigator.clipboard.writeText(text).then(function() { showToast('✓ Copied to clipboard'); });
+}
+
+// ── DELETE ───────────────────────────────────────────────
+function deleteEntry(id) {
+  if (!confirm('Permanently delete this entry?')) return;
+  fetch('/vault/delete', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ entry_id: id })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.success) {
+      showToast('✓ Entry deleted', 'var(--pink)');
+      currentEntryId = null;
+      document.getElementById('detail-panel').innerHTML =
+        '<div class="detail-empty"><div class="icon">◈</div><p>Select an entry from the sidebar</p></div>';
+      loadVault();
+    }
+  });
+}
+
+// ── MODAL ────────────────────────────────────────────────
+function openAddModal() {
+  editMode = false;
+  document.getElementById('modal-title-text').textContent = '// Add Password';
+  document.getElementById('modal-entry-id').value = '';
+  ['m-website','m-email','m-username','m-password','m-notes'].forEach(function(id) {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('modal').classList.add('active');
+}
+
+function openEditModal() {
+  if (!window._currentDetail) return;
+  var d = window._currentDetail;
+  editMode = true;
+  document.getElementById('modal-title-text').textContent = '// Edit Entry';
+  document.getElementById('modal-entry-id').value   = d.id;
+  document.getElementById('m-website').value         = d.website || '';
+  document.getElementById('m-email').value           = d.email || '';
+  document.getElementById('m-username').value        = d.entry_username || '';
+  document.getElementById('m-password').value        = d.password || '';
+  document.getElementById('m-notes').value           = d.notes || '';
+  document.getElementById('modal').classList.add('active');
+}
+
+function closeModal(e) { if (e.target === document.getElementById('modal')) closeModalDirect(); }
+function closeModalDirect() { document.getElementById('modal').classList.remove('active'); }
+
+function saveEntry() {
+  var website  = document.getElementById('m-website').value.trim();
+  var password = document.getElementById('m-password').value;
+  if (!website || !password) { showToast('⚠ Website and password required', 'var(--yellow)'); return; }
+
+  var payload = {
+    website:        website,
+    email:          document.getElementById('m-email').value,
+    entry_username: document.getElementById('m-username').value,
+    password:       password,
+    notes:          document.getElementById('m-notes').value
+  };
+
+  var url = '/vault/add';
+  if (editMode) { payload.entry_id = document.getElementById('modal-entry-id').value; url = '/vault/update'; }
+
+  fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.success) {
+      showToast('✓ ' + data.message);
+      closeModalDirect();
+      loadVault();
+      if (editMode && currentEntryId) selectEntry(currentEntryId);
+    } else {
+      showToast('✗ ' + data.message, 'var(--pink)');
+    }
+  });
+}
+
+// ── PASSWORD GENERATOR ──────────────────────────────────
+function generatePassword() {
+  fetch('/generate', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      length:        parseInt(document.getElementById('gen-length').value),
+      use_uppercase: document.getElementById('use-upper').checked,
+      use_lowercase: document.getElementById('use-lower').checked,
+      use_digits:    document.getElementById('use-digits').checked,
+      use_symbols:   document.getElementById('use-symbols').checked
+    })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (!data.success) return;
+    var out = document.getElementById('gen-output');
+    out.textContent = data.password;
+    out.style.color = 'var(--green)';
+    window._generatedPwd = data.password;
+
+    var colors = { 'Weak':'var(--pink)', 'Fair':'var(--yellow)', 'Strong':'var(--cyan)', 'Very Strong':'var(--green)' };
+    var s   = data.strength;
+    var col = colors[s.strength] || 'var(--cyan)';
+    var pct = Math.min(100, Math.round((s.score / 9) * 100));
+    var fill = document.getElementById('gen-strength-fill');
+    fill.style.width      = pct + '%';
+    fill.style.background = col;
+    var lbl = document.getElementById('gen-strength-label');
+    lbl.textContent = s.strength.toUpperCase();
+    lbl.style.color = col;
+  });
+}
+
+function copyGenerated() {
+  if (window._generatedPwd) {
+    navigator.clipboard.writeText(window._generatedPwd).then(function() { showToast('✓ Password copied!'); });
+  } else { showToast('⚠ Generate a password first', 'var(--yellow)'); }
+}
+
+function fillGenerated() {
+  fetch('/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ length: 16 }) })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.success) { document.getElementById('m-password').value = data.password; showToast('✓ Password generated'); }
+  });
+}
+
+// ── BREACH DETECTION ────────────────────────────────────
+var SEVERITY_COLORS = { CRITICAL: '#ff006e', HIGH: '#ff4400', MEDIUM: '#ff9500', LOW: '#ffe600', NONE: '#39ff14' };
+
+function checkSingleBreach() {
+  var pwd = document.getElementById('breach-input').value.trim();
+  if (!pwd) { showToast('⚠ Enter a password to check', 'var(--yellow)'); return; }
+
+  var resultEl = document.getElementById('single-breach-result');
+  var btn      = document.getElementById('breach-check-btn');
+
+  resultEl.style.display = 'block';
+  resultEl.innerHTML = '<div style="color:var(--muted);font-size:13px;">Querying breach database...</div>';
+  btn.disabled = true;
+  btn.textContent = '⏳';
+
+  fetch('/breach/check', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: pwd })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    btn.disabled = false; btn.textContent = '☣ CHECK';
+    var r = data.result;
+
+    if (r.error) {
+      resultEl.innerHTML = '<div class="result-error"><div class="result-label" style="color:var(--yellow);">⚠ CHECK ERROR</div><div class="result-advice">' + r.message + '</div></div>';
+      return;
+    }
+
+    if (r.breached) {
+      var col = SEVERITY_COLORS[r.severity] || '#ff006e';
+      resultEl.innerHTML =
+        '<div class="result-breached" style="--severity-col:' + col + '">' +
+          '<div class="result-label" style="color:' + col + '">☣ BREACHED — ' + r.severity + ' SEVERITY</div>' +
+          '<div class="result-count" style="color:' + col + '">Found ' + r.breach_count.toLocaleString() + ' times in known data breaches</div>' +
+          '<div class="result-advice">' + r.advice + '</div>' +
+        '</div>';
+    } else {
+      resultEl.innerHTML =
+        '<div class="result-safe">' +
+          '<div class="result-label" style="color:var(--green)">✓ NOT BREACHED</div>' +
+          '<div class="result-count" style="color:var(--green)">This password was not found in any known breach database.</div>' +
+          '<div class="result-advice">Your password appears safe. Continue using strong, unique passwords.</div>' +
+        '</div>';
+    }
+  })
+  .catch(function(e) {
+    btn.disabled = false; btn.textContent = '☣ CHECK';
+    resultEl.innerHTML = '<div class="result-error"><div class="result-label" style="color:var(--yellow);">⚠ CONNECTION ERROR</div><div class="result-advice">Could not reach breach database. Check your internet connection.</div></div>';
+  });
+}
+
+function scanVault() {
+  var btn = document.getElementById('scan-btn');
+  btn.disabled = true;
+  btn.querySelector('span').textContent = '⏳ SCANNING...';
+  document.getElementById('scan-results').style.display = 'none';
+
+  fetch('/breach/scan', { method: 'POST' })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    btn.disabled = false;
+    btn.querySelector('span').textContent = '☣ SCAN ALL PASSWORDS';
+
+    if (!data.success) { showToast('✗ Scan failed: ' + data.message, 'var(--pink)'); return; }
+
+    if (data.total_checked === 0) {
+      showToast('⚠ No passwords in vault to scan', 'var(--yellow)');
+      return;
+    }
+
+    // Summary bar
+    var breachCol = data.breached_count > 0 ? 'var(--pink)' : 'var(--green)';
+    document.getElementById('scan-summary').innerHTML =
+      '<div class="summary-cell">' +
+        '<div class="summary-num" style="color:var(--cyan)">' + data.total_checked + '</div>' +
+        '<div class="summary-lbl">Checked</div>' +
+      '</div>' +
+      '<div class="summary-cell">' +
+        '<div class="summary-num" style="color:' + breachCol + '">' + data.breached_count + '</div>' +
+        '<div class="summary-lbl">Breached</div>' +
+      '</div>' +
+      '<div class="summary-cell">' +
+        '<div class="summary-num" style="color:var(--green)">' + data.safe_count + '</div>' +
+        '<div class="summary-lbl">Safe</div>' +
+      '</div>' +
+      (data.error_count ? '<div class="summary-cell"><div class="summary-num" style="color:var(--yellow)">' + data.error_count + '</div><div class="summary-lbl">Errors</div></div>' : '');
+
+    // Results list
+    if (!data.results.length) {
+      document.getElementById('scan-list').innerHTML = '<div style="color:var(--muted);font-size:13px;padding:16px 0;">No passwords to check. Add entries to your vault first.</div>';
+    } else {
+      document.getElementById('scan-list').innerHTML = data.results.map(function(r) {
+        var col  = r.breached ? (SEVERITY_COLORS[r.severity] || '#ff006e') : '#39ff14';
+        var icon = r.breached ? '☣' : '✓';
+        var bg   = r.breached ? 'rgba(255,0,110,0.05)' : 'rgba(57,255,20,0.03)';
+        var bdr  = r.breached ? 'rgba(255,0,110,0.2)' : 'rgba(57,255,20,0.1)';
+        return '<div class="scan-item" style="background:' + bg + ';border:1px solid ' + bdr + ';border-left-color:' + col + ';">' +
+          '<div class="scan-item-icon">' + icon + '</div>' +
+          '<div class="scan-item-info">' +
+            '<div class="scan-item-site">' + r.website + '</div>' +
+            '<div class="scan-item-msg" style="color:' + col + '">' + r.message + '</div>' +
+            (r.breached ? '<div class="scan-item-advice">' + r.advice + '</div>' : '') +
+          '</div>' +
+          (r.breached ? '<div class="scan-item-badge" style="color:' + col + ';border-color:' + col + '">' + r.severity + '</div>' : '') +
+        '</div>';
+      }).join('');
+    }
+
+    document.getElementById('scan-results').style.display = 'block';
+
+    // Update security status in stats bar
+    if (data.breached_count > 0) {
+      document.getElementById('stat-security').textContent = 'AT RISK';
+      document.getElementById('stat-security').style.color = 'var(--pink)';
+      showToast('⚠ ' + data.breached_count + ' breached password(s) found!', 'var(--pink)');
+    } else {
+      document.getElementById('stat-security').textContent = 'SECURE';
+      document.getElementById('stat-security').style.color = 'var(--green)';
+      showToast('✓ All passwords are safe!', 'var(--green)');
+    }
+  })
+  .catch(function(e) {
+    btn.disabled = false;
+    btn.querySelector('span').textContent = '☣ SCAN ALL PASSWORDS';
+    showToast('✗ Scan error — check connection', 'var(--pink)');
+  });
+}
+
+// ── SECURITY ALERTS ─────────────────────────────────────
+function loadAlerts() {
+  fetch('/alerts')
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    var list = document.getElementById('alerts-list');
+    if (!data.alerts || !data.alerts.length) {
+      list.innerHTML = '<div style="color:var(--green);font-size:13px;padding:20px 0;">✓ No security alerts — vault is clean.</div>';
+      return;
+    }
+    list.innerHTML = data.alerts.map(function(a) {
+      return '<div class="alert-item">' +
+        '<div class="alert-type">⚠ ' + a.type + ' — ' + a.severity + '</div>' +
+        '<div class="alert-msg">' + a.message + '</div>' +
+        '<div class="alert-time">' + a.timestamp + '</div>' +
+      '</div>';
+    }).join('');
+  });
+}
+
+// ── HONEY ALERT ─────────────────────────────────────────
+function triggerHoneyAlert() {
+  var overlay = document.createElement('div');
+  overlay.id = 'honey-alert';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(2,4,8,0.97);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;animation:fadeIn 0.3s ease;';
+  overlay.innerHTML =
+    '<div style="font-family:Orbitron,monospace;font-size:11px;letter-spacing:6px;color:var(--pink);animation:blink 0.5s infinite;">⚠ SECURITY BREACH DETECTED ⚠</div>' +
+    '<div style="font-family:Orbitron,monospace;font-size:52px;font-weight:900;color:var(--pink);text-shadow:0 0 40px var(--pink),0 0 80px rgba(255,0,110,0.4);letter-spacing:4px;">INTRUSION</div>' +
+    '<div style="font-family:Orbitron,monospace;font-size:18px;color:#fff;letter-spacing:3px;">HONEY PASSWORD ACCESSED</div>' +
+    '<div style="max-width:480px;text-align:center;font-family:Share Tech Mono,monospace;font-size:13px;color:var(--muted);line-height:2;border:1px solid rgba(255,0,110,0.3);padding:20px 28px;background:rgba(255,0,110,0.05);">' +
+      'A <span style="color:var(--pink);font-weight:bold;">honey trap credential</span> was accessed in your vault.<br>' +
+      'This entry is never used by real users.<br>' +
+      'An intrusion alert has been logged with timestamp.<br><br>' +
+      '<span style="color:var(--yellow);">Recommendation: Change all passwords immediately.</span>' +
+    '</div>' +
+    '<div style="display:flex;gap:16px;margin-top:8px;">' +
+      '<button onclick="dismissHoneyAlert()" style="padding:12px 32px;background:none;border:1px solid var(--pink);color:var(--pink);font-family:Orbitron,monospace;font-size:12px;font-weight:700;letter-spacing:2px;cursor:none;transition:all 0.2s;" onmouseenter="this.style.background=\'var(--pink)\';this.style.color=\'var(--bg)\'" onmouseleave="this.style.background=\'none\';this.style.color=\'var(--pink)\'">ACKNOWLEDGE</button>' +
+      '<button onclick="viewAlerts()" style="padding:12px 32px;background:none;border:1px solid var(--border);color:var(--muted);font-family:Orbitron,monospace;font-size:12px;letter-spacing:2px;cursor:none;transition:all 0.2s;" onmouseenter="this.style.borderColor=\'var(--cyan)\';this.style.color=\'var(--cyan)\'" onmouseleave="this.style.borderColor=\'var(--border)\';this.style.color=\'var(--muted)\'">VIEW ALERTS</button>' +
+    '</div>' +
+    '<div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,0,110,0.03) 2px,rgba(255,0,110,0.03) 4px);pointer-events:none;"></div>' +
+    '<div style="position:absolute;top:20px;left:20px;width:50px;height:50px;border-top:2px solid var(--pink);border-left:2px solid var(--pink);"></div>' +
+    '<div style="position:absolute;top:20px;right:20px;width:50px;height:50px;border-top:2px solid var(--pink);border-right:2px solid var(--pink);"></div>' +
+    '<div style="position:absolute;bottom:40px;left:20px;width:50px;height:50px;border-bottom:2px solid var(--pink);border-left:2px solid var(--pink);"></div>' +
+    '<div style="position:absolute;bottom:40px;right:20px;width:50px;height:50px;border-bottom:2px solid var(--pink);border-right:2px solid var(--pink);"></div>';
+
+  document.body.appendChild(overlay);
+
+  var badge = document.getElementById('alert-badge');
+  badge.style.display = 'flex';
+  badge.style.background = 'var(--pink)';
+
+  // Screen flash
+  var flashes = 0;
+  var fi = setInterval(function() {
+    document.body.style.outline = flashes % 2 === 0 ? '3px solid rgba(255,0,110,0.6)' : 'none';
+    flashes++;
+    if (flashes >= 6) { clearInterval(fi); document.body.style.outline = 'none'; }
+  }, 100);
+}
+
+function dismissHoneyAlert() {
+  var overlay = document.getElementById('honey-alert');
+  if (overlay) { overlay.style.opacity = '0'; overlay.style.transition = 'opacity 0.3s'; setTimeout(function() { overlay.remove(); }, 300); }
+  loadVault();
+}
+
+function viewAlerts() { dismissHoneyAlert(); setTimeout(function() { showSection('alerts'); }, 350); }
+
+// ── LOGOUT ───────────────────────────────────────────────
+function handleLogout() {
+  fetch('/logout', { method: 'POST' })
+  .then(function() { window.location.href = '/'; });
+}
+
+// ── INIT ─────────────────────────────────────────────────
+loadVault();
+
+// Check alerts badge on load
+fetch('/alerts')
+.then(function(r) { return r.json(); })
+.then(function(d) {
+  if (d.alerts && d.alerts.length) {
+    var badge = document.getElementById('alert-badge');
+    badge.style.display = 'flex';
+    badge.textContent = d.alerts.length;
+  }
+});
+</script>
+</body>
+</html>
